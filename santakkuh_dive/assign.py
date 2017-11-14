@@ -99,6 +99,10 @@ def _start_fresh(connection, year):
 
 
 def assign_participants(connection, year):
+    verify_sql = "select count(*) from participants where year = %d" % year
+    for row in connection.cursor().execute(verify_sql):
+        if row[0] < 4:
+            exit("you need at least 3 people to participate")
 
     is_closed_loop = False
     while not is_closed_loop:

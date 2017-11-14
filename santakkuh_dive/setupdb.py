@@ -15,6 +15,7 @@ def create_db(connection):
         year INTEGER,
         name VARCHAR,
         email VARCHAR,
+        in_office VARCHAR,
         dislikes VARCHAR,
         likes VARCHAR
     )
