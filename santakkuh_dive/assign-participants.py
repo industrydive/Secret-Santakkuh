@@ -3,6 +3,13 @@ import settings
 
 
 def assign_participants(connection, year):
+    def _save_assignments(connection, year, assignments):
+        print "saving assignments"
+        connection.cursor().execute('delete from assignments where year = %d' % year)
+        for giver, reciever in assignments.iteritems():
+            sql = "INSERT INTO assignments (year, giver_id, recipient_id) VALUES (%d, %d, %d)"
+            connection.cursor().execute(sql % (year, giver, reciever))
+        connection.commit()
 
     def _get_random_assignee_for_giver(connection, year, giver_id, assignments):
         already_assigned = {assigned_recipients: assigned_giver for assigned_giver, assigned_recipients in assignments.iteritems()}
@@ -59,15 +66,44 @@ def assign_participants(connection, year):
                 everyone_is_assigned = False
         return everyone_is_assigned, assignments
 
-    connection.cursor().execute('delete from assignments where year = %d' % year)
+    def _check_is_closed_loop(assignments):
+        edges = []
+        checking_now = assignments.keys()[0]
+        checking_next = assignments[checking_now]
+        while checking_now:
+            edges.append((checking_now, checking_next))
+            checking_now = checking_next
+            checking_next = assignments.get(checking_next)
+            if checking_next == assignments.keys()[0]:
+                edges.append((checking_now, checking_next))
+                # loop has closed, stop creating edges and end while loop
+                checking_now = False
 
-    everyone_is_assigned = False
-    assignments = {}
-    _try = 1
-    while not everyone_is_assigned:
-        print "try %d" % _try
-        everyone_is_assigned, assignments = _make_assignments(connection, year)
-        _try += 1
+        # if we made the same amount of edges as we have assignments, then
+        # the while loop got all the way through the assignments and we have
+        # a full loop
+        return len(edges) == len(assignments)
+
+    def _start_fresh(connection, year):
+        everyone_is_assigned = False
+        assignments = {}
+        _try = 1
+        while not everyone_is_assigned:
+            print "try %d" % _try
+            everyone_is_assigned, assignments = _make_assignments(connection, year)
+            _try += 1
+        return assignments
+
+    is_closed_loop = False
+    while not is_closed_loop:
+        assignments = _start_fresh(connection, year)
+        is_closed_loop = _check_is_closed_loop(assignments)
+        if is_closed_loop:
+            print "is closed loop"
+        else:
+            print "is not closed loop, trying again"
+
+    _save_assignments(connection, year, assignments)
 
 
 if __name__ == '__main__':
