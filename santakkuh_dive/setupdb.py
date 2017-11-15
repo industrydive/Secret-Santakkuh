@@ -32,6 +32,7 @@ def create_db(connection):
         year INTEGER,
         giver_id INTEGER,
         recipient_id INTEGER,
+        email_sent VARCHAR,
         PRIMARY KEY (year, giver_id),
         FOREIGN KEY(giver_id) REFERENCES participants(id),
         FOREIGN KEY(recipient_id) REFERENCES participants(id)
