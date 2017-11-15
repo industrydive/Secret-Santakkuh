@@ -73,9 +73,19 @@ Once participants have been given assignments, use this module to send
 emails detailing who they have been assigned to as secret santakkuh and
 their person's likes/dislikes/allergies, etc.
 
+You can di this in bulk by passing in no arguments, or to a single
+person by passing in their email address.
+
+When sent in bulk, emails will only be sent if that participants "email_sent" 
+flag has not been set to 'Y' (meaning their email was already sent)
+
+If specifying a single email address, the email will be sent regardless of
+this flag
+
 usage:
 $ python send_emails.py
-
+or
+$ pythin send_emails.py bmorin@industrydive.com
 
 +================+
  	Testing

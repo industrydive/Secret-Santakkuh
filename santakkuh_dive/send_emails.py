@@ -1,3 +1,4 @@
+import sys
 import sqlite3
 import settings
 import smtplib
@@ -98,8 +99,17 @@ def send_email(connection, giver, recipient):
         print TEXT
 
 
-def send_emails(connection, year):
-    assignments_sql = "SELECT giver_id, recipient_id FROM assignments WHERE year = %d and (email_sent != 'Y' or email_sent is null)" % year
+def send_emails(connection, year, to_email=None):
+    if to_email:
+        assignments_sql = """
+            SELECT giver_id, recipient_id FROM assignments WHERE year = %d and giver_id = (
+            select id from participants where email = '%s' and year = %d)
+        """ % (year, to_email, year)
+    else:
+        assignments_sql = """
+            SELECT giver_id, recipient_id FROM assignments WHERE year = %d and (email_sent != 'Y' or email_sent is null)
+        """ % year
+
     for assignment in connection.cursor().execute(assignments_sql):
         giver_id = assignment[0]
         recipient_id = assignment[1]
@@ -112,4 +122,8 @@ def send_emails(connection, year):
 
 if __name__ == '__main__':
     connection = sqlite3.connect(settings.SQLITE_FILENAME)
-    send_emails(connection, settings.YEAR)
+    if len(sys.argv) > 1:
+        to_email = sys.argv[1]
+    else:
+        to_email = None
+    send_emails(connection, settings.YEAR, to_email)
