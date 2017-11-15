@@ -1,3 +1,4 @@
+import sys
 import sqlite3
 import settings
 
@@ -42,7 +43,7 @@ def _get_random_assignee_for_giver(connection, year, giver_id, assignments):
     return None
 
 
-def _make_assignments(connection, year):
+def _make_assignments(connection, year, verbose):
     sql = """
         SELECT id, name FROM participants WHERE year = %d ORDER BY RANDOM()
     """
@@ -60,10 +61,12 @@ def _make_assignments(connection, year):
             recipient_name = recipient[1]
             recipient_id = recipient[0]
             assignments[giver_id] = recipient_id
-            print "%s has %s" % (giver_name, recipient_name)
+            if verbose:
+                print "%s has %s" % (giver_name, recipient_name)
             everyone_is_assigned = True
         else:
-            print "%s has no one" % (giver_name)
+            if verbose:
+                print "%s has no one" % (giver_name)
             everyone_is_assigned = False
     return everyone_is_assigned, assignments
 
@@ -87,18 +90,18 @@ def _check_is_closed_loop(assignments):
     return len(edges) == len(assignments)
 
 
-def _start_fresh(connection, year):
+def _start_fresh(connection, year, verbose):
     everyone_is_assigned = False
     assignments = {}
     _try = 1
     while not everyone_is_assigned:
         print "try %d" % _try
-        everyone_is_assigned, assignments = _make_assignments(connection, year)
+        everyone_is_assigned, assignments = _make_assignments(connection, year, verbose)
         _try += 1
     return assignments
 
 
-def assign_participants(connection, year):
+def assign_participants(connection, year, verbose=False):
     verify_sql = "select count(*) from participants where year = %d" % year
     for row in connection.cursor().execute(verify_sql):
         if row[0] < 4:
@@ -106,7 +109,7 @@ def assign_participants(connection, year):
 
     is_closed_loop = False
     while not is_closed_loop:
-        assignments = _start_fresh(connection, year)
+        assignments = _start_fresh(connection, year, verbose)
         is_closed_loop = _check_is_closed_loop(assignments)
         if is_closed_loop:
             print "is closed loop"
@@ -118,4 +121,4 @@ def assign_participants(connection, year):
 
 if __name__ == '__main__':
     connection = sqlite3.connect(settings.SQLITE_FILENAME)
-    assign_participants(connection, settings.YEAR)
+    assign_participants(connection, settings.YEAR, verbose='--verbose' in sys.argv)

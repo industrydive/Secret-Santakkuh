@@ -1,14 +1,17 @@
+import sys
 import sqlite3
 import settings
 
 
 def destroy_db(connection):
+    print "dropping tables"
     for table in ['participants', 'assignments']:
         cursor = connection.cursor()
         cursor.execute("DROP TABLE IF EXISTS %s" % table)
 
 
 def create_db(connection):
+    print "creating tables"
     participants_table_def = """
         CREATE TABLE IF NOT EXISTS participants (
         id INTEGER PRIMARY KEY,
@@ -40,5 +43,6 @@ def create_db(connection):
 
 if __name__ == '__main__':
     connection = sqlite3.connect(settings.SQLITE_FILENAME)
-    destroy_db(connection)
+    if '--clean' in sys.argv:
+        destroy_db(connection)
     create_db(connection)
