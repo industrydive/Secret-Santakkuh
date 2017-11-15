@@ -3,8 +3,8 @@ Secret Santakkuh Dive
  	Getting Started
 +========================+
 
-1) Create and activate a virtual virtual environment
-2) pip install the requirements 
+1) Create and activate a python virtual environment
+2) pip install the requirements
 3) Copy settings_sample.py to settings.py and adjust the values as needed
 4) Run the modules as detailed below
 
