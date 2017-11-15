@@ -73,7 +73,7 @@ def send_email(giver, recipient):
 
     FROM = settings.FROM_EMAIL
     TO = giver.email
-    SUBJECT = 'Secret Santakkuh TEST FOR %s' % giver.name
+    SUBJECT = 'Secret Santakkuh 2017!!!'
 
     if send_now:
         msg = MIMEMultipart('alternative')
