@@ -85,7 +85,7 @@ this flag
 usage:
 $ python send_emails.py
 or
-$ pythin send_emails.py bmorin@industrydive.com
+$ python send_emails.py bmorin@industrydive.com
 
 +================+
  	Testing
