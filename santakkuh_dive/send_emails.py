@@ -25,12 +25,6 @@ def send_email(giver, recipient):
         <head></head>
         <body>
         <p>
-        Congratulations! You've been selected to test my Secret Santakkuh program. This is not official.
-        <br />
-        Below is what the final email will look like. Please tell me if it is wonky.
-        <br/>
-        --------------------------
-        <br />
         Good news, %s! Your Secret Santakkuh recipient this year is: <b>%s</b>! <br><br>
 
         %s %s be in the office for the gift exchange and likes:<br>
@@ -56,12 +50,6 @@ def send_email(giver, recipient):
     )
 
     TEXT = """
-        Congratulations! You've been selected to test my Secret Santakkuh program. This is not official.
-
-        Below is what the final email will look like. Please tell me if it is wonky.
-
-        --------------------------
-
         Good news, %s! Your Secret Santakkuh recipient this year is: %s!
 
         %s %s be in the office for the gift exchange and likes:
@@ -83,7 +71,7 @@ def send_email(giver, recipient):
         recipient.dislikes or "nothing, apparently. Good luck!",
     )
 
-    FROM = 'bmorin@industrydive.com'
+    FROM = settings.FROM_EMAIL
     TO = giver.email
     SUBJECT = 'Secret Santakkuh TEST FOR %s' % giver.name
 
