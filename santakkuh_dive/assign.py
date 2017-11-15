@@ -101,6 +101,31 @@ def _start_fresh(connection, year, verbose):
     return assignments
 
 
+def _final_checks(connection, year):
+    ''' Sanity checks against assignee data
+    '''
+    total_particpant_q = connection.cursor().execute("select count(*) from participants where year = %d" % year)
+    for row in total_particpant_q:
+        total_particpant_count = int(row[0])
+
+    total_giver_q = connection.cursor().execute("select count(distinct giver_id) from assignments where year = %d" % year)
+    for row in total_giver_q:
+        total_giver_count = int(row[0])
+
+    total_recipient_q = connection.cursor().execute("select count(distinct recipient_id) from assignments where year = %d" % year)
+    for row in total_recipient_q:
+        total_recipient_count = int(row[0])
+
+    dupe_count_qs = connection.cursor().execute("select count(*) from assignments where giver_id = recipient_id and year = %d" % year)
+    for row in dupe_count_qs:
+        dupe_count_count = int(row[0])
+
+    print "total participants: %d" % total_particpant_count
+    print "total assigned givers: %d" % total_giver_count
+    print "total assigned recipients: %d" % total_recipient_count
+    print "anyone assigned to themselves: %d" % dupe_count_count
+
+
 def assign_participants(connection, year, verbose=False):
     verify_sql = "select count(*) from participants where year = %d" % year
     for row in connection.cursor().execute(verify_sql):
@@ -117,6 +142,7 @@ def assign_participants(connection, year, verbose=False):
             print "is not closed loop, trying again"
 
     _save_assignments(connection, year, assignments)
+    _final_checks(connection, year)
 
 
 if __name__ == '__main__':
