@@ -87,6 +87,17 @@ $ python send_emails.py
 or
 $ python send_emails.py bmorin@industrydive.com
 
+
+make_output_csv
+------------------
+
+Once participants have been given assignments, use this module to generate a
+CSV file of the assignments for backup or other reasons.
+
+usage:
+$ python make_output_csv.py
+
+
 +================+
  	Testing
 +================+
