@@ -16,6 +16,13 @@ class Participant(models.Model):
     def __str__(self):
         return ('%s, "%s", %d') % (self.user.username, self.display_name, self.participation_year)
 
+    def secret_santa(self, participation_year=2017):
+        assgnmt = Assignment.objects.get(
+            recipient_id=self.pk,
+            participation_year=participation_year
+        )
+        return assgnmt.giver
+
 
 class Assignment(models.Model):
     participation_year = models.IntegerField()
