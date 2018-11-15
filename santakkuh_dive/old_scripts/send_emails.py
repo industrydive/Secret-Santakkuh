@@ -8,9 +8,11 @@ from email.mime.text import MIMEText
 
 class Participant():
     def __init__(self, connection, id, year):
-        select_sql = "SELECT name, email, likes, dislikes, in_office, id FROM participants WHERE id = %d AND year = %d" % (
-            id, year
-        )
+        select_sql = """
+            SELECT name, email, likes, dislikes, in_office, participant_id
+            FROM v_participants WHERE participant_id = %d AND year = %d
+        """ % (id, year)
+
         for data_row in connection.cursor().execute(select_sql):
             self.name = data_row[0]
             self.email = data_row[1]
@@ -27,7 +29,7 @@ def send_email(connection, giver, recipient):
         <head></head>
         <body>
         <p>
-        Good news, %s! Your Secret Santakkuh recipient this year is: <b>%s</b>! <br><br>
+        Good news, %s! Your Secret Holiday Recipient this year is: <b>%s</b>! <br><br>
 
         %s %s be in the office for the gift exchange and likes:<br>
         %s
@@ -35,7 +37,7 @@ def send_email(connection, giver, recipient):
         Is %s allergic to or strongly opposed to anything?<br>
         %s
         <br><br>
-        Remember to keep your spending around $20 and NO GIFT CARDS or you'll ruin christmas.
+        Remember to keep your spending around $20 and NO GIFT CARDS or you'll ruin the holidays.
 
         Thanks!
         </p>
@@ -52,7 +54,7 @@ def send_email(connection, giver, recipient):
     )
 
     TEXT = """
-        Good news, %s! Your Secret Santakkuh recipient this year is: %s!
+        Good news, %s! Your Secret Holiday Recipient this year is: %s!
 
         %s %s be in the office for the gift exchange and likes:
         %s
@@ -60,7 +62,7 @@ def send_email(connection, giver, recipient):
         Is %s allergic to or strongly opposed to anything?
         %s
 
-        Remember to keep your spending around $20 and NO GIFT CARDS or you'll ruin christmas.
+        Remember to keep your spending around $20 and NO GIFT CARDS or you'll ruin the holidays.
 
         Thanks!
         """ % (
@@ -85,10 +87,10 @@ def send_email(connection, giver, recipient):
         msg.attach(part1)
         msg.attach(part2)
         msg['Subject'] = SUBJECT
-        server = smtplib.SMTP('smtp.gmail.com', 587)  # port 465 or 587
+        server = smtplib.SMTP_SSL('smtp.gmail.com', 465)  # port 465 or 587
         server.ehlo()
-        server.starttls()
-        server.ehlo()
+        # server.starttls()
+        # server.ehlo()
         server.login(settings.FROM_EMAIL, settings.EMAIL_PW)
         server.sendmail(FROM, TO, msg.as_string())
         server.close()
@@ -99,18 +101,19 @@ def send_email(connection, giver, recipient):
         print TEXT
 
 
-def send_emails(connection, year, to_email=None):
-    if to_email:
-        assignments_sql = """
-            SELECT giver_id, recipient_id FROM assignments WHERE year = %d and giver_id = (
-            select id from participants where email = '%s' and year = %d)
-        """ % (year, to_email, year)
-    else:
-        assignments_sql = """
-            SELECT giver_id, recipient_id FROM assignments WHERE year = %d and (email_sent != 'Y' or email_sent is null)
-        """ % year
+def get_assignment(connection, participant_id, year):
+    assignment_result = connection.cursor().execute(
+        "SELECT giver_id, recipient_id FROM v_assignments WHERE year = %d and giver_id=%d" % (
+            year, participant_id
+        )
+    )
+    for row in assignment_result:
+        return row
 
-    for assignment in connection.cursor().execute(assignments_sql):
+
+def send_emails(connection, year, participants):
+    for participant_id in participants:
+        assignment = get_assignment(connection, participant_id, year)
         giver_id = assignment[0]
         recipient_id = assignment[1]
 
@@ -120,10 +123,39 @@ def send_emails(connection, year, to_email=None):
         send_email(connection, giver, recipient)
 
 
+def get_all_participants(connection, year):
+    sql = "SELECT participant_id FROM v_participants WHERE year = %d and (email_sent != 'Y' or email_sent is null)" % year
+    participants = []
+    for id in connection.cursor().execute(sql):
+        participants.append[id]
+    return participants
+
+
+def get_targetted_participants(connection, year, emails):
+    sql = """
+        SELECT participant_id FROM v_participants WHERE year = %d
+        AND email in (%s)
+    """ % (year, ",".join(["'%s'" % email for email in emails]))
+
+    participants = []
+    for id in connection.cursor().execute(sql):
+        participants.append(id[0])
+    return participants
+
+
 if __name__ == '__main__':
+    testing = '--testing' in sys.argv
     connection = sqlite3.connect(settings.SQLITE_FILENAME)
-    if len(sys.argv) > 1:
-        to_email = sys.argv[1]
+
+    if testing:
+        print "just testing, folks"
+        participants = get_targetted_participants(connection, settings.YEAR, settings.TEST_EMAILS)
+        send_emails(connection, settings.YEAR, participants)
     else:
-        to_email = None
-    send_emails(connection, settings.YEAR, to_email)
+        print "ITS THE REAL THING"
+    #
+    # if len(sys.argv) > 1:
+    #     to_email = sys.argv[1]
+    # else:
+    #     to_email = None
+    # send_emails(connection, settings.YEAR, to_email)

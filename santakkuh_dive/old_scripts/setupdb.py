@@ -6,6 +6,7 @@ import settings
 def destroy_db(connection):
     print "dropping tables"
     for drop_statement in [
+        'DROP VIEW IF EXISTS v_assignments',
         'DROP VIEW IF EXISTS v_participants',
         'DROP TABLE IF EXISTS participants',
         'DROP TABLE IF EXISTS assignments'
@@ -71,6 +72,26 @@ def create_db(connection):
 
     cursor = connection.cursor()
     cursor.execute(participants_view_def)
+
+    assignments_view = """
+    CREATE VIEW IF NOT EXISTS v_assignments AS
+    select
+        a.giver_id,
+        a.recipient_id,
+        p.year,
+        p.name,
+        p.email,
+        p.likes,
+        p.dislikes,
+        p.in_office
+    from
+    assignments a, v_participants p
+    where
+    p.participant_id = a.recipient_id
+    and a.year = p.year
+    """
+    cursor = connection.cursor()
+    cursor.execute(assignments_view)
 
 
 if __name__ == '__main__':
