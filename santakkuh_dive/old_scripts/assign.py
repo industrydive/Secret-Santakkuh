@@ -1,3 +1,4 @@
+import random
 import sys
 import sqlite3
 import settings
@@ -24,41 +25,41 @@ def _get_previous_assignee_for_giver(connection, year, giver_id):
     for recipient_id in connection.cursor().execute(
         previous_recipient_sql % (last_year, giver_id)
     ):
-        previous_recipient_id = recipient_id
+        previous_recipient_id = recipient_id[0]
     return previous_recipient_id
 
 
+def _available_recipients(connection, exclude_ids, year):
+    available_recipients = []
+    sql = """
+        SELECT participant_id, name FROM v_participants WHERE year = %d and participant_id NOT IN (%s)
+    """ % (year, ','.join([str(xid) for xid in exclude_ids]))
+    for recipient in connection.cursor().execute(sql):
+        available_recipients.append(recipient)
+    return available_recipients
+
+
 def _get_random_assignee_for_giver(connection, year, giver_id, assignments):
-    already_assigned = {assigned_recipients: assigned_giver for assigned_giver, assigned_recipients in assignments.iteritems()}
-    recipient = None
+    recipient_giver_list = {assigned_recipients: assigned_giver for assigned_giver, assigned_recipients in assignments.iteritems()}
+    already_assigned = recipient_giver_list.get(giver_id)
+
     previous_recipient_id = _get_previous_assignee_for_giver(connection, year, giver_id)
-    recipient_sql_template = """
-        SELECT participant_id, name
-        FROM v_participants WHERE
-        year = %d
-        AND id != %d
-        AND id not in (%s)
-        %s
-        %s
-        AND id >= (abs(random()) %% (SELECT max(id) FROM participants))
-        LIMIT 1
-    """
 
-    recipient_sql = recipient_sql_template % (
-        year,
-        giver_id,
-        ','.join(
-            [str(assigned_recipients) for assigned_giver, assigned_recipients in assignments.iteritems()]
-        ),
-        'AND id != %d' % already_assigned.get(giver_id) if already_assigned.get(giver_id) else '',
-        'AND id != %d' % previous_recipient_id if previous_recipient_id else ''
-    )
+    # people who have already been assigned to a giver
+    assigned_recipient_ids = [assigned_recipient for assigned_giver, assigned_recipient in assignments.iteritems()]
 
-    # print recipient_sql
+    # if this giver gave a gift last year, exclude that person from their pool this year
+    if previous_recipient_id:
+        exclude_ids = list(set(assigned_recipient_ids + [previous_recipient_id, giver_id]))
+    else:
+        exclude_ids = list(set(assigned_recipient_ids + [giver_id, ]))
 
-    for recipient in connection.cursor().execute(recipient_sql):
-        return recipient
-    return None
+    # make sure this person doesn't get assigned the person who has them if applicable
+    if already_assigned:
+        exclude_ids = list(set(exclude_ids + [already_assigned, ]))
+
+    available_recipients = _available_recipients(connection, exclude_ids, year)
+    return random.choice(available_recipients)
 
 
 def _make_assignments(connection, year, verbose):
@@ -90,33 +91,33 @@ def _make_assignments(connection, year, verbose):
 
 
 def _check_is_closed_loop(assignments):
-    edges = []
+    # edges = []
     checking_now = assignments.keys()[0]
     checking_next = assignments[checking_now]
+    checked = []
     while checking_now:
-        edges.append((checking_now, checking_next))
+        checked.append(checking_now)
         checking_now = checking_next
         checking_next = assignments.get(checking_next)
-        if checking_next == assignments.keys()[0]:
-            edges.append((checking_now, checking_next))
+        if checking_next in checked:
+            checked.append(checking_next)
             # loop has closed, stop creating edges and end while loop
             checking_now = False
 
     # if we made the same amount of edges as we have assignments, then
     # the while loop got all the way through the assignments and we have
     # a full loop
-    return len(edges) == len(assignments)
+    return len(checked) == len(assignments)
 
 
-def _start_fresh(connection, year, verbose):
+def _start_fresh(connection, year, verbose, _try):
     everyone_is_assigned = False
     assignments = {}
-    _try = 1
     while not everyone_is_assigned:
         print "try %d" % _try
         everyone_is_assigned, assignments = _make_assignments(connection, year, verbose)
         _try += 1
-    return assignments
+    return _try, assignments
 
 
 def _final_checks(connection, year):
@@ -149,18 +150,24 @@ def assign_participants(connection, year, verbose=False):
     for row in connection.cursor().execute(verify_sql):
         if row[0] < 4:
             exit("you need at least 3 people to participate")
-
+    max_tries = 10
     is_closed_loop = False
-    while not is_closed_loop:
-        assignments = _start_fresh(connection, year, verbose)
+    _try = 1
+    print "try %d" % _try
+    while not is_closed_loop and _try <= max_tries:
+        _try, assignments = _start_fresh(connection, year, verbose, _try)
+        if verbose:
+            print "checking is closed loop..."
         is_closed_loop = _check_is_closed_loop(assignments)
         if is_closed_loop:
-            print "is closed loop"
+            print "is closed loop on try %d" % _try
         else:
             print "is not closed loop, trying again"
-
-    _save_assignments(connection, year, assignments)
-    _final_checks(connection, year)
+    if is_closed_loop:
+        _save_assignments(connection, year, assignments)
+        _final_checks(connection, year)
+    else:
+        print "failed to generate closed loop in under %d tries" % max_tries
 
 
 if __name__ == '__main__':

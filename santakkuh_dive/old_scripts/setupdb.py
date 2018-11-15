@@ -5,9 +5,13 @@ import settings
 
 def destroy_db(connection):
     print "dropping tables"
-    for table in ['participants', 'assignments']:
+    for drop_statement in [
+        'DROP VIEW IF EXISTS v_participants',
+        'DROP TABLE IF EXISTS participants',
+        'DROP TABLE IF EXISTS assignments'
+    ]:
         cursor = connection.cursor()
-        cursor.execute("DROP TABLE IF EXISTS %s" % table)
+        cursor.execute(drop_statement)
 
 
 def create_db(connection):
@@ -15,17 +19,28 @@ def create_db(connection):
     participants_table_def = """
         CREATE TABLE IF NOT EXISTS participants (
         id INTEGER PRIMARY KEY,
-        year INTEGER,
         name VARCHAR,
-        email VARCHAR,
-        in_office VARCHAR,
-        dislikes VARCHAR,
-        likes VARCHAR
+        email VARCHAR
     )
     """
 
     cursor = connection.cursor()
     cursor.execute(participants_table_def)
+
+    preferences_table_def = """
+        CREATE TABLE IF NOT EXISTS preferences (
+        participant_id INTEGER,
+        year INTEGER,
+        in_office VARCHAR,
+        dislikes VARCHAR,
+        likes VARCHAR,
+        PRIMARY KEY (year, participant_id),
+        FOREIGN KEY(participant_id) REFERENCES participants(id)
+    )
+    """
+
+    cursor = connection.cursor()
+    cursor.execute(preferences_table_def)
 
     assignments_table_def = """
         CREATE TABLE IF NOT EXISTS assignments (
@@ -40,6 +55,22 @@ def create_db(connection):
     """
     cursor = connection.cursor()
     cursor.execute(assignments_table_def)
+
+    participants_view_def = """
+        CREATE VIEW IF NOT EXISTS v_participants AS
+        SELECT
+            p.id as participant_id,
+            p.email,
+            p.name,
+            pr.year,
+            pr.likes,
+            pr.dislikes,
+            pr.in_office
+        FROM participants p, preferences pr where pr.participant_id = p.id;
+    """
+
+    cursor = connection.cursor()
+    cursor.execute(participants_view_def)
 
 
 if __name__ == '__main__':
