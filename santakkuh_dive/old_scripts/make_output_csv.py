@@ -6,20 +6,21 @@ import csv
 def make_output_csv(connection):
     assignments_sql = """
         select
-        giv.name as giver,
-        rec.name as recipient,
-        rec.dislikes as dislikes,
-        rec.likes as likes
-        from participants giv, participants rec, assignments asm
+        giver.name,
+        recipient.name,
+        recipient.likes,
+        recipient.dislikes,
+        recipient.in_office
+        from v_assignments recipient, participants giver
         where
-        giv.id = asm.giver_id
-        and rec.id = asm.recipient_id
+        giver.id = recipient.giver_id
+        and year = %d
     """
 
     with open(settings.OUT_FILE, 'w+') as csvfile:
         writer = csv.writer(csvfile)
-        writer.writerow(['giver', 'recipient', 'recipient dislikes', 'recipient likes'])
-        for assignment in connection.cursor().execute(assignments_sql):
+        writer.writerow(['giver', 'recipient', 'recipient likes', 'recipient dislikes', 'recipient in office'])
+        for assignment in connection.cursor().execute(assignments_sql % settings.YEAR):
             writer.writerow(assignment)
 
 
