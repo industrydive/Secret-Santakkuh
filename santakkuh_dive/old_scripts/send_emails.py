@@ -37,7 +37,7 @@ def send_email(connection, giver, recipient):
         Is %s allergic to or strongly opposed to anything?<br>
         %s
         <br><br>
-        Remember to keep your spending around $20 and NO GIFT CARDS or you'll ruin the holidays.
+        Remember to keep your spending around $25 and NO GIFT CARDS or you'll ruin the holidays.
 
         Thanks!
         </p>
@@ -62,7 +62,7 @@ def send_email(connection, giver, recipient):
         Is %s allergic to or strongly opposed to anything?
         %s
 
-        Remember to keep your spending around $20 and NO GIFT CARDS or you'll ruin the holidays.
+        Remember to keep your spending around $25 and NO GIFT CARDS or you'll ruin the holidays.
 
         Thanks!
         """ % (
@@ -75,9 +75,9 @@ def send_email(connection, giver, recipient):
         recipient.dislikes or "nothing, apparently. Good luck!",
     )
 
-    FROM = settings.FROM_EMAIL
+    FROM = 'Secret Gift Exchange <%s>' % settings.FROM_EMAIL
     TO = giver.email
-    SUBJECT = 'Secret Santakkuh 2017!!!'
+    SUBJECT = 'Secret Holiday Gift Exchange %d!!!' % settings.YEAR
 
     if send_now:
         print "sending email to %s (%s)" % (giver.name, giver.email)
@@ -97,8 +97,7 @@ def send_email(connection, giver, recipient):
         connection.cursor().execute("UPDATE assignments SET email_sent = 'Y' where giver_id = %d" % giver.id)
         connection.commit()
     else:
-
-        print TEXT
+        print "[TEST] sending email to %s (%s)" % (giver.name, giver.email)
 
 
 def get_assignment(connection, participant_id, year):
@@ -119,27 +118,29 @@ def send_emails(connection, year, participants):
 
         giver = Participant(connection, giver_id, year)
         recipient = Participant(connection, recipient_id, year)
-
         send_email(connection, giver, recipient)
 
 
 def get_all_participants(connection, year):
-    sql = "SELECT participant_id FROM v_participants WHERE year = %d and (email_sent != 'Y' or email_sent is null)" % year
+    sql = """
+        SELECT giver_id FROM v_assignments
+        WHERE year = %d and (email_sent != 'Y' or email_sent is null)
+    """ % year
     participants = []
-    for id in connection.cursor().execute(sql):
-        participants.append[id]
+    for row in connection.cursor().execute(sql):
+        participants.append(row[0])
     return participants
 
 
 def get_targetted_participants(connection, year, emails):
     sql = """
-        SELECT participant_id FROM v_participants WHERE year = %d
-        AND email in (%s)
+        SELECT giver_id FROM v_assignments WHERE year = %d
+        AND giver_email in (%s)
     """ % (year, ",".join(["'%s'" % email for email in emails]))
 
     participants = []
-    for id in connection.cursor().execute(sql):
-        participants.append(id[0])
+    for row in connection.cursor().execute(sql):
+        participants.append(row[0])
     return participants
 
 
@@ -153,9 +154,5 @@ if __name__ == '__main__':
         send_emails(connection, settings.YEAR, participants)
     else:
         print "ITS THE REAL THING"
-    #
-    # if len(sys.argv) > 1:
-    #     to_email = sys.argv[1]
-    # else:
-    #     to_email = None
-    # send_emails(connection, settings.YEAR, to_email)
+        participants = get_all_participants(connection, settings.YEAR)
+        send_emails(connection, settings.YEAR, participants)

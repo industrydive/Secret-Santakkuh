@@ -79,15 +79,12 @@ def create_db(connection):
         a.giver_id,
         a.recipient_id,
         p.year,
-        p.name,
-        p.email,
-        p.likes,
-        p.dislikes,
-        p.in_office
+        p.email as giver_email,
+        a.email_sent
     from
     assignments a, v_participants p
     where
-    p.participant_id = a.recipient_id
+    p.participant_id = a.giver_id
     and a.year = p.year
     """
     cursor = connection.cursor()
