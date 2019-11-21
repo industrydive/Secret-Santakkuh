@@ -80,7 +80,7 @@ def send_email(connection, giver, recipient):
     SUBJECT = 'Secret Holiday Gift Exchange %d!!!' % settings.YEAR
 
     if send_now:
-        print "sending email to %s (%s)" % (giver.name, giver.email)
+        print("sending email to %s (%s)" % (giver.name, giver.email))
         msg = MIMEMultipart('alternative')
         part1 = MIMEText(TEXT, 'plain')
         part2 = MIMEText(HMTL, 'html')
@@ -97,7 +97,7 @@ def send_email(connection, giver, recipient):
         connection.cursor().execute("UPDATE assignments SET email_sent = 'Y' where giver_id = %d" % giver.id)
         connection.commit()
     else:
-        print "[TEST] sending email to %s (%s)" % (giver.name, giver.email)
+        print("[TEST] sending email to %s (%s)" % (giver.name, giver.email))
 
 
 def get_assignment(connection, participant_id, year):
@@ -149,10 +149,10 @@ if __name__ == '__main__':
     connection = sqlite3.connect(settings.SQLITE_FILENAME)
 
     if testing:
-        print "just testing, folks"
+        print("just testing, folks")
         participants = get_targetted_participants(connection, settings.YEAR, settings.TEST_EMAILS)
         send_emails(connection, settings.YEAR, participants)
     else:
-        print "ITS THE REAL THING"
+        print("ITS THE REAL THING")
         participants = get_all_participants(connection, settings.YEAR)
         send_emails(connection, settings.YEAR, participants)
