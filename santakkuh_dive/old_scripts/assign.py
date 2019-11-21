@@ -5,9 +5,9 @@ import settings
 
 
 def _save_assignments(connection, year, assignments):
-    print "saving assignments"
+    print("saving assignments")
     connection.cursor().execute('delete from assignments where year = %d' % year)
-    for giver, reciever in assignments.iteritems():
+    for giver, reciever in assignments.items():
         sql = "INSERT INTO assignments (year, giver_id, recipient_id) VALUES (%d, %d, %d)"
         connection.cursor().execute(sql % (year, giver, reciever))
     connection.commit()
@@ -40,13 +40,13 @@ def _available_recipients(connection, exclude_ids, year):
 
 
 def _get_random_assignee_for_giver(connection, year, giver_id, assignments):
-    recipient_giver_list = {assigned_recipients: assigned_giver for assigned_giver, assigned_recipients in assignments.iteritems()}
+    recipient_giver_list = {assigned_recipients: assigned_giver for assigned_giver, assigned_recipients in assignments.items()}
     already_assigned = recipient_giver_list.get(giver_id)
 
     previous_recipient_id = _get_previous_assignee_for_giver(connection, year, giver_id)
 
     # people who have already been assigned to a giver
-    assigned_recipient_ids = [assigned_recipient for assigned_giver, assigned_recipient in assignments.iteritems()]
+    assigned_recipient_ids = [assigned_recipient for assigned_giver, assigned_recipient in assignments.items()]
 
     # if this giver gave a gift last year, exclude that person from their pool this year
     if previous_recipient_id:
@@ -81,18 +81,18 @@ def _make_assignments(connection, year, verbose):
             recipient_id = recipient[0]
             assignments[giver_id] = recipient_id
             if verbose:
-                print "%s has %s" % (giver_name, recipient_name)
+                print("%s has %s" % (giver_name, recipient_name))
             everyone_is_assigned = True
         else:
             if verbose:
-                print "%s has no one" % (giver_name)
+                print("%s has no one" % (giver_name))
             everyone_is_assigned = False
     return everyone_is_assigned, assignments
 
 
 def _check_is_closed_loop(assignments):
     # edges = []
-    checking_now = assignments.keys()[0]
+    checking_now = list(assignments.keys())[0]
     checking_next = assignments[checking_now]
     checked = []
     while checking_now:
@@ -114,7 +114,7 @@ def _start_fresh(connection, year, verbose, _try):
     everyone_is_assigned = False
     assignments = {}
     while not everyone_is_assigned:
-        print "try %d" % _try
+        print("try %d" % _try)
         everyone_is_assigned, assignments = _make_assignments(connection, year, verbose)
         _try += 1
     return _try, assignments
@@ -139,10 +139,10 @@ def _final_checks(connection, year):
     for row in dupe_count_qs:
         dupe_count_count = int(row[0])
 
-    print "total participants: %d" % total_particpant_count
-    print "total assigned givers: %d" % total_giver_count
-    print "total assigned recipients: %d" % total_recipient_count
-    print "anyone assigned to themselves: %d" % dupe_count_count
+    print("total participants: %d" % total_particpant_count)
+    print("total assigned givers: %d" % total_giver_count)
+    print("total assigned recipients: %d" % total_recipient_count)
+    print("anyone assigned to themselves: %d" % dupe_count_count)
 
 
 def assign_participants(connection, year, verbose=False):
@@ -153,21 +153,21 @@ def assign_participants(connection, year, verbose=False):
     max_tries = 10
     is_closed_loop = False
     _try = 1
-    print "try %d" % _try
+    print("try %d" % _try)
     while not is_closed_loop and _try <= max_tries:
         _try, assignments = _start_fresh(connection, year, verbose, _try)
         if verbose:
-            print "checking is closed loop..."
+            print("checking is closed loop...")
         is_closed_loop = _check_is_closed_loop(assignments)
         if is_closed_loop:
-            print "is closed loop on try %d" % _try
+            print("is closed loop on try %d" % _try)
         else:
-            print "is not closed loop, trying again"
+            print("is not closed loop, trying again")
     if is_closed_loop:
         _save_assignments(connection, year, assignments)
         _final_checks(connection, year)
     else:
-        print "failed to generate closed loop in under %d tries" % max_tries
+        print("failed to generate closed loop in under %d tries" % max_tries)
 
 
 if __name__ == '__main__':

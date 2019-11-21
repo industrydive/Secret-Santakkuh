@@ -9,7 +9,7 @@ def get_create_or_update_participant(connection, email, name):
     """ % (email)
 
     cursor = connection.cursor()
-    print existing_participant_sql
+    print(existing_participant_sql)
     existing_participant = cursor.execute(
         existing_participant_sql
     ).fetchone()
@@ -33,12 +33,12 @@ def get_create_or_update_participant(connection, email, name):
             name.strip(),
             email.strip()
         )
-    print sql
+    print(sql)
     connection.cursor().execute(sql)
     connection.commit()
 
     cursor = connection.cursor()
-    print existing_participant_sql
+    print(existing_participant_sql)
     existing_participant = cursor.execute(
         existing_participant_sql
     ).fetchone()
